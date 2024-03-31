@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width,initial-scale=1' />
+</head>
+
+<body style="text-align: center; color: #ffffff; font-size:150%">
+    <form method='POST' action='' enctype='multipart/form-data' style="background-color: #00b289; padding: 1%;">
+        Прошивка:<br>
+        <input type='file' accept='.bin,.bin.gz' name='firmware'>
+        <input type='submit' value='Загрузить'>
+    </form>
+    <hr>
+    <form method='POST' action='' enctype='multipart/form-data'style="background-color: #00b289; padding: 1%;">
+        Файловая система:<br>
+        <input type='file' accept='.bin,.bin.gz,.image' name='filesystem'>
+        <input type='submit' value='Загрузить'>
+    </form>
+    <hr>
+</body>
+
+</html>

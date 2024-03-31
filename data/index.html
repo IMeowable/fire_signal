@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Project</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        #sliderValue {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    padding: 0;
+    text-align: center; /* Центрируем текст */
+}
+
+#sliderValueInner {
+    display: inline-block;
+ 
+}
+
+
+
+        .circle-button {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: red;
+            border: none;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Устанавливаем z-index, чтобы кнопка была поверх других элементов */
+        }
+
+        .circle-button:hover {
+            background-color: darkred;
+        }
+
+        .close {
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    max-width: 800px;
+    width: 100%;
+    text-align: center; /* Добавляем выравнивание текста по центру */
+}
+
+
+.left-section, .right-section {
+    flex: 1;
+    padding: 20px;
+}
+h2 {
+    text-align: center;
+    margin-bottom: 0; /* Уменьшаем отступ после заголовков */
+}
+
+p {
+    margin-top: 5px; /* Добавляем небольшой отступ перед параграфами */
+}
+
+button {
+    padding: 10px 20px;
+    margin: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 200px; /* Устанавливаем одинаковую ширину для всех кнопок */
+}
+
+input[type="range"] {
+    width: calc(100% - 40px); /* Устанавливаем ширину ползунка */
+    margin-top: 20px; /* Увеличиваем отступ сверху */
+    margin-bottom: 20px; /* Увеличиваем отступ снизу */
+}
+
+        .modal {
+            display: none;
+        }
+
+        #myModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .button-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    
+
+    <div class="container">
+        <h2>Слайдер для изменения ЦАП</h2>
+    <input type="range" id="slider" min="0" max="255" step="25" value="0" oninput="updateSliderValue(this.value)">
+    <p id="sliderValue"> <!-- Оберните текущее значение в дополнительный контейнер -->
+        <span id="sliderValueInner">0</span> <!-- Внутренний контейнер для центрирования -->
+    </p>
+    
+        <div class="left-section">
+            <h1>Показание АЦП</h1>
+            <p id="adc-value">Значение АЦП: (пин 32)<span id="adc-data">-</span></p>
+            <h1>Показания цифрового датчика</h1>
+            <p id="digital-sensor">Значение цифрового датчика: <span id="digital-data">-</span></p>
+            <h1>Состояние тревоги</h1>
+            <p id="alarm-status-fire">-</p>
+        </div>
+
+        <div class="right-section">
+            <button onclick="showModal()">Настройки MQTT</button>
+            <button onclick="openModalByLink('WiFi.html')">Настройка сети</button>
+            <button onclick="openModalByLink('Alarming.html')">Модуль оповещения</button>
+
+            <div id="selection-section">
+                <h2>Выбор пинов</h2> 
+                <label for="digital-pin" name="digital-pin">Выберите цифровой пин:</label>
+                <select id="digital-pin">
+                    <option value="32">32</option>
+                    <option value="34">34</option>
+                    <option value="35">35</option>
+                    <option value="36">36</option>
+                    <option value="39">39</option>                   
+                    <!-- Остальные опции цифровых пинов -->
+                </select>
+                <button onclick="confirmSelection()">Подтвердить выбор</button>
+            </div>
+
+            <button id="toggleButton" onclick="toggleAlarm()">Вкл/выкл охранный режим.</button>
+            <div id="alarm-status">Режим охраны</div>
+        </div>
+    </div>
+    <div id="myModalMQTT" class="modal">
+        <div class="modal-content" id="modalContentMQTT">
+            
+            <div class="modal-content">
+                
+                <span class="circle-button" onclick="closeModalMQTT()">&times;</span>
+                <label for="broker-address">Адрес брокера MQTT:</label>
+                <input type="text" id="broker-address" name="broker-address"><br><br>
+                <label for="qos">Уровень QoS:</label>
+                <select id="qos" name="qos">
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                </select><br><br>
+                <label for="username">Имя пользователя:</label>
+                <input type="text" id="username" name="username"><br><br>
+                <label for="password">Пароль:</label>
+                <input type="password" id="password" name="password"><br><br>
+                <label for="topic">Топик:</label>
+                <input type="text" id="topic" name="topic"><br><br>
+                <label for="keepalive">Кипалив:</label>
+                <input type="text" id="keepalive" name="keepalive"><br><br>
+                <button onclick="saveSettings()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно -->
+    <div id="myModal" class="modal">
+        <div class="modal-content" id="modalContent">
+            
+            <!-- В этом элементе будет отображаться содержимое модального окна --></div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script>
+        var secure_status = false;
+        function openModalByLink(pageUrl) {
+            var modal = document.getElementById("myModal");
+            var modalContent = document.getElementById("modalContent");
+
+            // Загружаем содержимое страницы в модальное окно
+            fetch(pageUrl)
+                .then(response => response.text())
+                .then(data => {
+                    modalContent.innerHTML = data;
+                    modal.style.display = "block";
+                })
+                .catch(error => {
+                    console.error('Error loading page content:', error);
+                });
+        }
+        function showModal() {
+    var modal = document.getElementById("myModalMQTT");
+    modal.style.display = "block"; // Показываем модальное окно при вызове функции
+}
+function closeModalMQTT() {
+    var modal = document.getElementById("myModalMQTT");
+    modal.style.display = "none";
+}
+    // Закрытие модального окна
+    function closeModal() {
+        var modal = document.getElementById("myModal");
+        modal.style.display = "none";
+    }
+
+    // Сохранение настроек
+    function saveSettings() {
+        var brokerAddress = document.getElementById("broker-address").value;
+        var qos = document.getElementById("qos").value;
+        var username = document.getElementById("username").value;
+        var password = document.getElementById("password").value;
+        var topic = document.getElementById("topic").value;
+        var keepalive = document.getElementById("keepalive").value;
+        var settings = {
+            "brokerAddress": brokerAddress,
+            "qos": qos,
+            "username": username,
+            "password": password,
+            "topic": topic,
+            "keepalive": keepalive
+        };
+        fetch('/setMQTT', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(settings),
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(data);
+        })
+        .catch(error => {
+            console.error('Error:', error.message);
+        });
+        closeModal();
+    }
+    
+        function getSecurityStatus() {
+            fetch('/getSecurityStatus')
+                .then(response => response.json())
+                .then(data => {
+                    secure_status = data.alarmStatus === 'true';
+                    document.getElementById('alarm-status').innerText = 'Режим охраны: ' + (secure_status ? 'Включен' : 'Выключен');
+                })
+                .catch(error => {
+                    console.error('Error fetching security status:', error);
+                });
+        }
+    
+        function toggleAlarm() {
+            secure_status = !secure_status;
+            fetch('/toggleAlarm', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'alarmStatus=' + secure_status,
+            })
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('alarm-status').innerText = 'Режим охраны: ' + (secure_status ? 'Включен' : 'Выключен');
+                })
+                .catch(error => {
+                    console.error('Error toggling alarm:', error);
+                });
+        }
+    
+        function confirmSelection() {
+            var digitalPin = document.getElementById("digital-pin").value;
+    
+            console.log("Digital Pin:", digitalPin);
+            $.ajax({
+                url: "/confirmSelection",
+                method: "POST",
+                data: {
+                    'digital-pin': digitalPin,
+                },
+                success: function (response) {
+                    document.getElementById("selection-section").style.display = "none";
+                    alert("Успешные изменения.");
+                },
+                error: function (error) {
+                    alert("Ошибка сохранения" + JSON.stringify(error));
+                    console.error("Ошибка при подтверждении выбора: ", error);
+                }
+            });
+        }
+    
+        function fetchAlarmStatus() {
+            $.ajax({
+                url: "/getAlarmStatus",
+                method: "GET",
+                dataType: "json",
+                success: function (response) {
+                    $("#alarm-status-fire").text(response.alarmStatus);
+                },
+                error: function (error) {
+                    console.error("Ошибка при получении состояния тревоги: ", error);
+                }
+            });
+        }
+    
+        function fetchAnalogData() {
+            $.ajax({
+                url: "/getAnalogData",
+                method: "GET",
+                success: function (response) {
+                    $("#adc-data").html(String(response.analogValue));
+                },
+                error: function (error) {
+                    console.error("Ошибка при получении данных аналогового датчика: ", error);
+                }
+            });
+        }
+    
+        function fetchDigitalData() {
+            $.ajax({
+                url: "/getDigitalData",
+                method: "GET",
+                success: function (response) {
+                    $("#digital-data").html(String(response.digitalValue));
+                },
+                error: function (error) {
+                    console.error("Ошибка при получении данных цифрового датчика: ", error);
+                }
+            });
+        }
+    
+        function updateSliderValue(value) {
+    document.getElementById("sliderValue").innerHTML = "Current Value: " + value;
+
+    // Отправка данных на сервер ESP32
+    fetch('/setDAC', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'value=' + value,
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log(data);
+    })
+    .catch(error => {
+        console.error('Error:', error.message);
+    });
+}
+
+    
+        $(document).ready(function () {
+            fetchAnalogData();
+            fetchAlarmStatus();
+            fetchDigitalData();
+    
+            setInterval(function () {
+                fetchAnalogData();
+                fetchDigitalData();
+                fetchAlarmStatus();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

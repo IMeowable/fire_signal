@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        
+    </style>
+    <title>Модуль оповещения</title>
+</head>
+<body>
+    <span class="circle-button" onclick="closeModal()">&times;</span>
+    <h1>Модуль оповещения</h1>
+    <form id="alarm-form">
+        <label for="telegram-api-key">API ключ Telegram:</label><br>
+        <input type="text" id="telegram-api-key" name="telegram-api-key"><br>
+
+        <label for="chat-id">Chat ID:</label><br>
+        <input type="text" id="chat-id" name="chat-id"><br>
+
+        <!-- Другие необходимые поля для ввода данных для работы с Telegram ботом -->
+
+        <button type="button" onclick="saveAlarmSettings()">Сохранить</button>
+    </form>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script>
+        function saveAlarmSettings() {
+            // Получение значений API ключа и chat_id из полей ввода
+            var apiKey = $("#telegram-api-key").val();
+            var chatId = $("#chat-id").val();
+
+            // Отправка данных на сервер с использованием Ajax
+            $.ajax({
+                url: "/saveAlarmSettings", // Маршрут на сервере
+                method: "POST",
+                data: {
+                    apiKey: apiKey,
+                    chatId: chatId,
+                    // Добавьте другие поля, если необходимо
+                },
+                success: function(response) {
+                    // Обработка успешного ответа от сервера
+                    console.log("Настройки оповещения сохранены успешно");
+                    alert("Настройки оповещения сохранены успешно");
+                },
+                error: function(error) {
+                    // Обработка ошибки при отправке данных на сервер
+                    console.error("Ошибка при сохранении настроек оповещения: ", error);
+                    alert("Ошибка при сохранении настроек оповещения: " + JSON.stringify(error));
+                }
+            });
+        }
+    </script>
+</body>
+</html>
